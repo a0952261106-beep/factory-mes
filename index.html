@@ -28,6 +28,9 @@
 
         .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 20px; font-weight: bold; margin-top: 10px; cursor:pointer;}
         .btn-search { width: 100%; background: #0056b3; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 18px; margin-top: 10px; cursor:pointer;}
+        
+        /* 讀取庫存小按鈕 */
+        .btn-small-load { background: #17a2b8; color: white; border: none; border-radius: 5px; padding: 5px 10px; font-size: 14px; cursor: pointer; float: right; }
 
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; height: 60px; z-index: 100; }
         .nav-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; color: #999; cursor: pointer; border-top: 4px solid transparent; }
@@ -57,9 +60,21 @@
         </div>
 
         <div class="card info-grid">
-            <div><span class="label">📦 料號 (Part)</span><input type="text" id="part" class="input-field" value="A-774"></div>
+            <div style="grid-column: span 2;">
+                <span class="label">📦 料號 (Part) 
+                    <button class="btn-small-load" onclick="fetchStockForInput()">🔄 讀取庫存</button>
+                </span>
+                <input type="text" id="part" class="input-field" value="A-774">
+            </div>
+            
             <div><span class="label">🔖 批號 (Batch)</span><input type="text" id="batch" class="input-field" value="LOT-01"></div>
-            <div><span class="label">📥 本次進貨</span><input type="number" id="target" class="input-field" value="0" onclick="this.select()"></div>
+            
+            <div>
+                <span class="label">🏭 目前庫存</span>
+                <input type="text" id="current-system-stock" class="input-field" value="尚未讀取" readonly style="background:#e9ecef; color:#666; font-size:16px;">
+            </div>
+
+            <div><span class="label">📥 本次進貨</span><input type="number" id="target" class="input-field" value="0" onclick="this.select()" oninput="previewNewStock()"></div>
             
             <div style="grid-column: span 2;">
                 <span class="label">⏱️ 預計完成時間 (YYYY/MM/DD HH:mm)</span>
@@ -69,11 +84,15 @@
 
         <div class="card" style="text-align:center;">
             <span class="label">✅ 本次完成數量</span>
-            <input type="number" id="qty" class="qty-input" value="0" onclick="this.select()">
+            <input type="number" id="qty" class="qty-input" value="0" onclick="this.select()" oninput="previewNewStock()">
             <div class="btn-group">
                 <button class="btn-op btn-minus" onclick="adjQty(-1)">-1</button>
                 <button class="btn-op btn-plus" onclick="adjQty(1)">+1</button>
                 <button class="btn-op btn-plus-10" onclick="adjQty(10)">+10</button>
+            </div>
+            
+            <div style="margin-top: 10px; font-size: 14px; color: #666; border-top:1px solid #eee; padding-top:5px;">
+                更新後預估庫存： <span id="preview-stock" style="font-weight:bold; color:var(--primary);">--</span>
             </div>
         </div>
 
@@ -140,21 +159,17 @@
         const URL = "https://script.google.com/macros/s/AKfycbym1ulu27l_8gCThjYV6CbTUS8mv4CaXEGxCM-aNzO4aqNaghO1ib0XCnztCUOqCL0/exec"; 
         // ==========================================
 
-        // 初始化：設定預計完成時間為「現在」
+        // 初始化時間
         function initTime() {
             const now = new Date();
-            // 格式化為 YYYY-MM-DDTHH:mm 以符合 input datetime-local 的要求
-            // 注意：要處理時區問題，這裡用簡單的本地時間格式化
             const y = now.getFullYear();
             const m = (now.getMonth()+1).toString().padStart(2,'0');
             const d = now.getDate().toString().padStart(2,'0');
             const h = now.getHours().toString().padStart(2,'0');
             const min = now.getMinutes().toString().padStart(2,'0');
-            
-            // 填入 value
             document.getElementById('ect').value = `${y}-${m}-${d}T${h}:${min}`;
         }
-        initTime(); // 執行初始化
+        initTime();
 
         function updateClock() {
             const t = new Date().toLocaleTimeString('zh-TW', {hour12:false, hour:'2-digit', minute:'2-digit'});
@@ -169,10 +184,56 @@
             if(el) el.classList.add('active');
         }
 
+        // --- 核心：在輸入頁面讀取庫存 ---
+        let systemStock = 0; // 暫存伺服器回傳的庫存
+
+        function fetchStockForInput() {
+            if(!URL) return alert("請設定網址");
+            let p = document.getElementById('part').value.trim();
+            if(!p) return alert("請輸入料號");
+
+            toggleLoad(true);
+            document.getElementById('current-system-stock').value = "讀取中...";
+
+            // 使用與查詢相同的後端 API
+            fetch(`${URL}?partNo=${encodeURIComponent(p)}&batchNo=`)
+            .then(r => r.json())
+            .then(data => {
+                toggleLoad(false);
+                if(data.found) {
+                    systemStock = data.currentStock; // 記住這個數字
+                    document.getElementById('current-system-stock').value = systemStock;
+                    previewNewStock(); // 重新計算預覽
+                } else {
+                    systemStock = 0;
+                    document.getElementById('current-system-stock').value = "0 (新料號)";
+                    previewNewStock();
+                }
+            })
+            .catch(e => {
+                toggleLoad(false);
+                document.getElementById('current-system-stock').value = "讀取失敗";
+                alert("連線錯誤");
+            });
+        }
+
+        // 預覽更新後的庫存 (即時計算)
+        function previewNewStock() {
+            let t = parseInt(document.getElementById('target').value) || 0;
+            let q = parseInt(document.getElementById('qty').value) || 0;
+            
+            // 公式：系統原有庫存 + 本次進貨 - 本次完成
+            let estimated = systemStock + t - q;
+            document.getElementById('preview-stock').innerText = estimated;
+        }
+
         function adjQty(n) {
             let el = document.getElementById('qty');
             let v = parseInt(el.value) || 0;
-            if(v + n >= 0) el.value = v + n;
+            if(v + n >= 0) {
+                el.value = v + n;
+                previewNewStock(); // 數字變動時更新預覽
+            }
         }
 
         function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
@@ -189,8 +250,8 @@
                 batchNo: document.getElementById('batch').value,
                 target: t,
                 qty: q,
-                stock: t - q,
-                ect: document.getElementById('ect').value // 這裡會傳送完整的日期時間字串
+                stock: systemStock + t - q, // 這是為了記錄當下算出來的庫存
+                ect: document.getElementById('ect').value
             };
             
             fetch(URL, {
@@ -202,6 +263,8 @@
                 alert("✅ 資料已提交！");
                 document.getElementById('qty').value = 0;
                 document.getElementById('target').value = 0;
+                // 提交後，自動重新讀取一次最新庫存，讓師傅看到更新後的結果
+                fetchStockForInput();
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
         }
 
@@ -225,16 +288,13 @@
                     const tbody = document.getElementById('history-tbody');
                     tbody.innerHTML = "";
                     data.history.forEach(row => {
-                        // 格式化 提交時間
                         let submitTime = row.time;
                         try {
                             let d = new Date(row.time);
                             submitTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                         } catch(e){}
 
-                        // 格式化 ECT (預計完成時間)
                         let ectDisplay = row.ect ? row.ect.replace("T", " ") : "-"; 
-                        // 如果只需要顯示月日時分，也可以在這裡切字串
                         if(ectDisplay.length > 10) ectDisplay = ectDisplay.substring(5, 16).replace("T", " ");
 
                         tbody.innerHTML += `
