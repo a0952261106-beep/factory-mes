@@ -8,7 +8,6 @@
         :root { --primary: #0056b3; --success: #28a745; --bg: #f4f6f8; --card-bg: #fff; }
         body { font-family: -apple-system, Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; touch-action: manipulation; }
         
-        /* 分頁控制 */
         .page { display: none; padding: 10px; }
         .page.active { display: block; }
         
@@ -19,10 +18,8 @@
         .input-field { width: 100%; padding: 12px; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-weight: bold; background: #fff;}
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        /* 大數字輸入 */
         .qty-input { width: 100%; font-size: 48px; font-weight: 800; color: var(--primary); text-align: center; border: none; background: transparent; margin: 5px 0; }
         
-        /* 按鈕 */
         .btn-group { display: flex; gap: 10px; }
         .btn-op { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-minus { background: #dc3545; }
@@ -32,21 +29,18 @@
         .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 20px; font-weight: bold; margin-top: 10px; cursor:pointer;}
         .btn-search { width: 100%; background: #0056b3; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 18px; margin-top: 10px; cursor:pointer;}
 
-        /* 底部導覽列 */
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; height: 60px; z-index: 100; }
         .nav-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; color: #999; cursor: pointer; border-top: 4px solid transparent; }
         .nav-item.active { color: var(--primary); font-weight: bold; border-top-color: var(--primary); background: #f8f9fa; }
         .nav-icon { font-size: 24px; margin-bottom: 2px; }
 
-        /* 查詢結果儀表板 */
         .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
         .dash-item { background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff; }
         .dash-title { font-size: 12px; color: #666; }
         .dash-val { font-size: 20px; font-weight: bold; color: #0056b3; margin-top: 5px; }
 
-        /* 歷史表格 */
         .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; }
+        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; white-space: nowrap;}
         .history-table td { padding: 8px; border-bottom: 1px solid #eee; }
         .history-table tr:nth-child(even) { background-color: #f9f9f9; }
 
@@ -66,7 +60,11 @@
             <div><span class="label">📦 料號 (Part)</span><input type="text" id="part" class="input-field" value="A-774"></div>
             <div><span class="label">🔖 批號 (Batch)</span><input type="text" id="batch" class="input-field" value="LOT-01"></div>
             <div><span class="label">📥 本次進貨</span><input type="number" id="target" class="input-field" value="0" onclick="this.select()"></div>
-            <div><span class="label">⏱️ 預計完成</span><input type="time" id="ect" class="input-field" value="17:00"></div>
+            
+            <div style="grid-column: span 2;">
+                <span class="label">⏱️ 預計完成時間 (YYYY/MM/DD HH:mm)</span>
+                <input type="datetime-local" id="ect" class="input-field">
+            </div>
         </div>
 
         <div class="card" style="text-align:center;">
@@ -91,13 +89,13 @@
         </div>
 
         <div class="card">
-            <span class="label">輸入料號查看「合併總庫存」</span>
+            <span class="label">輸入料號查詢「合併總庫存」</span>
             <input type="text" id="q-part" class="input-field" placeholder="料號 (如 A-774)">
-            <button class="btn-search" onclick="queryData()">查詢總庫存</button>
+            <button class="btn-search" onclick="queryData()">查詢</button>
         </div>
 
         <div id="result-area" class="card" style="display:none; border-top: 5px solid #0056b3;">
-            <h3 style="margin-top:0; color:#333;">📊 統計結果 (該料號所有批次)</h3>
+            <h3 style="margin-top:0; color:#333;">📊 統計結果</h3>
             
             <div class="dashboard-grid">
                 <div class="dash-item">
@@ -114,15 +112,14 @@
                 </div>
             </div>
 
-            <h4 style="margin-bottom:5px; margin-top:20px; border-bottom:1px solid #eee;">📜 詳細紀錄</h4>
+            <h4 style="margin-bottom:5px; margin-top:20px; border-bottom:1px solid #eee;">📜 詳細紀錄 (含日期)</h4>
             <div style="overflow-x:auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>時間</th>
-                            <th>批號</th>
-                            <th>進貨</th>
-                            <th>完成</th>
+                            <th>提交時間</th>
+                            <th>預計完成</th>
+                            <th>進貨/完成</th>
                         </tr>
                     </thead>
                     <tbody id="history-tbody"></tbody>
@@ -132,14 +129,8 @@
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchPage('input', this)">
-            <div class="nav-icon">📝</div>
-            <div>回報</div>
-        </div>
-        <div class="nav-item" onclick="switchPage('query', this)">
-            <div class="nav-icon">🔍</div>
-            <div>查詢</div>
-        </div>
+        <div class="nav-item active" onclick="switchPage('input', this)"><div class="nav-icon">📝</div>回報</div>
+        <div class="nav-item" onclick="switchPage('query', this)"><div class="nav-icon">🔍</div>查詢</div>
     </div>
 
     <script>
@@ -148,6 +139,22 @@
         // ==========================================
         const URL = "https://script.google.com/macros/s/AKfycbym1ulu27l_8gCThjYV6CbTUS8mv4CaXEGxCM-aNzO4aqNaghO1ib0XCnztCUOqCL0/exec"; 
         // ==========================================
+
+        // 初始化：設定預計完成時間為「現在」
+        function initTime() {
+            const now = new Date();
+            // 格式化為 YYYY-MM-DDTHH:mm 以符合 input datetime-local 的要求
+            // 注意：要處理時區問題，這裡用簡單的本地時間格式化
+            const y = now.getFullYear();
+            const m = (now.getMonth()+1).toString().padStart(2,'0');
+            const d = now.getDate().toString().padStart(2,'0');
+            const h = now.getHours().toString().padStart(2,'0');
+            const min = now.getMinutes().toString().padStart(2,'0');
+            
+            // 填入 value
+            document.getElementById('ect').value = `${y}-${m}-${d}T${h}:${min}`;
+        }
+        initTime(); // 執行初始化
 
         function updateClock() {
             const t = new Date().toLocaleTimeString('zh-TW', {hour12:false, hour:'2-digit', minute:'2-digit'});
@@ -170,12 +177,10 @@
 
         function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
 
-        // 提交 (只負責寫入，不顯示庫存)
         function submitData() {
             if(!URL || URL.includes("貼上")) return alert("請設定網址");
             toggleLoad(true);
 
-            // 這裡算出的 stock 只是單筆的 stock，不是總庫存，但我們為了格式統一還是傳過去
             let t = parseInt(document.getElementById('target').value) || 0;
             let q = parseInt(document.getElementById('qty').value) || 0;
             
@@ -184,8 +189,8 @@
                 batchNo: document.getElementById('batch').value,
                 target: t,
                 qty: q,
-                stock: t - q, // 這是單筆的剩餘，不是總庫存
-                ect: document.getElementById('ect').value
+                stock: t - q,
+                ect: document.getElementById('ect').value // 這裡會傳送完整的日期時間字串
             };
             
             fetch(URL, {
@@ -195,13 +200,11 @@
             }).then(() => {
                 toggleLoad(false); 
                 alert("✅ 資料已提交！");
-                // 清空數量方便下一筆
                 document.getElementById('qty').value = 0;
                 document.getElementById('target').value = 0;
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
         }
 
-        // 查詢 (負責加總並顯示)
         function queryData() {
             if(!URL) return alert("請設定網址");
             let p = document.getElementById('q-part').value.trim();
@@ -210,33 +213,38 @@
             toggleLoad(true);
             document.getElementById('result-area').style.display = 'none';
 
-            fetch(`${URL}?partNo=${encodeURIComponent(p)}&batchNo=`) // batchNo 留空表示查全部
+            fetch(`${URL}?partNo=${encodeURIComponent(p)}&batchNo=`) 
             .then(r => r.json())
             .then(data => {
                 toggleLoad(false);
                 if(data.found) {
-                    // 填入統計數據
                     document.getElementById('res-total-target').innerText = data.totalTarget;
                     document.getElementById('res-total-qty').innerText = data.totalQty;
                     document.getElementById('res-stock').innerText = data.currentStock;
 
-                    // 產生歷史表格
                     const tbody = document.getElementById('history-tbody');
                     tbody.innerHTML = "";
                     data.history.forEach(row => {
-                        // 日期格式化
-                        let dStr = row.time;
+                        // 格式化 提交時間
+                        let submitTime = row.time;
                         try {
                             let d = new Date(row.time);
-                            dStr = `${d.getFullYear()}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}`;
+                            submitTime = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
                         } catch(e){}
+
+                        // 格式化 ECT (預計完成時間)
+                        let ectDisplay = row.ect ? row.ect.replace("T", " ") : "-"; 
+                        // 如果只需要顯示月日時分，也可以在這裡切字串
+                        if(ectDisplay.length > 10) ectDisplay = ectDisplay.substring(5, 16).replace("T", " ");
 
                         tbody.innerHTML += `
                             <tr>
-                                <td>${dStr}</td>
-                                <td>${row.batch}</td>
-                                <td style="color:#666;">${row.target}</td>
-                                <td style="color:var(--success); font-weight:bold;">${row.qty}</td>
+                                <td>${submitTime}</td>
+                                <td style="font-size:12px; color:#666;">${ectDisplay}</td>
+                                <td>
+                                    <span style="color:#999;">${row.target}</span> / 
+                                    <span style="color:var(--success); font-weight:bold;">${row.qty}</span>
+                                </td>
                             </tr>
                         `;
                     });
