@@ -3,41 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>工廠系統</title>
+    <title>工廠作業系統</title>
     <style>
         :root { --primary: #0056b3; --success: #28a745; --bg: #f4f6f8; }
         body { font-family: -apple-system, Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; touch-action: manipulation; }
         
-        .page { display: none; padding: 10px; }
-        .page.active { display: block; }
+        .page { padding: 10px; }
         .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;}
         
         .label { font-size: 13px; color: #666; display: block; margin-bottom: 5px; }
         .input-field { width: 100%; padding: 12px; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-weight: bold; background: #fff;}
         
-        /* 自動計算欄位的背景色 */
-        .auto-calc { background-color: #e8f5e9; color: #2e7d32; border-color: #a5d6a7; }
+        /* 自動計算欄位樣式 */
+        .auto-calc { background-color: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
 
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
+        /* 完成數量大輸入框 */
         .qty-input { width: 100%; font-size: 48px; font-weight: 800; color: var(--primary); text-align: center; border: none; background: transparent; margin: 5px 0; }
+        
+        /* 按鈕群組 */
         .btn-group { display: flex; gap: 10px; }
         .btn-op { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-minus { background: #dc3545; }
         .btn-plus { background: #198754; }
-
-        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; height: 65px; z-index: 100; }
-        .nav-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; color: #999; cursor: pointer; border-top: 4px solid transparent; }
-        .nav-item.active { color: var(--primary); font-weight: bold; border-top-color: var(--primary); background: #f8f9fa; }
-        .nav-icon { font-size: 24px; margin-bottom: 2px; }
+        .btn-plus-10 { background: #0d6efd; }
 
         .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; }
         .btn-search { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 18px; margin-top: 10px; cursor: pointer; }
 
-        /* 歷史表格樣式 */
-        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
-        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; }
+        /* 歷史表格 */
+        .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; white-space: nowrap;}
         .history-table td { padding: 8px; border-bottom: 1px solid #eee; }
         .history-table tr:nth-child(even) { background-color: #f9f9f9; }
 
@@ -47,23 +45,23 @@
 <body>
     <div id="loading"><div style="font-size: 40px;">🔄</div><div style="margin-top:10px;">讀取中...</div></div>
 
-    <div id="page-main" class="page active">
+    <div class="page">
         <div class="header">
-            <div>🏭 工廠作業看板</div>
-            <div id="clock">12:00</div>
+            <div>🏭 現場生產回報</div>
+            <div id="clock">12:00:00</div>
         </div>
 
         <div class="card" style="border-left: 5px solid #0056b3;">
-            <span class="label">🔍 輸入料號/批號調閱資料</span>
+            <span class="label">🔍 步驟一：輸入料號調閱過去資料</span>
             <div class="info-grid">
-                <input type="text" id="q-part" class="input-field" placeholder="料號 (必填)">
+                <input type="text" id="q-part" class="input-field" placeholder="料號 (如 A-774)">
                 <input type="text" id="q-batch" class="input-field" placeholder="批號 (選填)">
             </div>
-            <button class="btn-search" onclick="queryData()">查詢並載入</button>
+            <button class="btn-search" onclick="queryData()">查詢並載入設定</button>
         </div>
 
         <div class="card" id="work-area">
-            <h3 style="margin-top:0; color:#0056b3; border-bottom:1px solid #eee; padding-bottom:5px;">📝 作業回報</h3>
+            <h3 style="margin-top:0; color:#0056b3; border-bottom:1px solid #eee; padding-bottom:5px;">📝 步驟二：修正生產狀況</h3>
             
             <div class="info-grid">
                 <div><span class="label">📦 料號</span><input type="text" id="part" class="input-field" readonly style="background:#f0f0f0;"></div>
@@ -71,22 +69,22 @@
                 
                 <div>
                     <span class="label">📥 進貨數量 (Target)</span>
-                    <input type="number" id="target" class="input-field" value="0" oninput="autoCalc()">
+                    <input type="number" id="target" class="input-field" value="0" oninput="autoCalc()" onclick="this.select()">
                 </div>
                 <div>
-                    <span class="label">🏭 庫存數量 (自動算)</span>
+                    <span class="label">🏭 庫存 (Target - Qty)</span>
                     <input type="number" id="stock" class="input-field auto-calc" readonly value="0">
                 </div>
             </div>
 
             <div style="text-align:center; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <span class="label">✅ 完成數量 (Qty)</span>
+                <span class="label">✅ 累計完成數量 (修改此處)</span>
                 <input type="number" id="qty" class="qty-input" value="0" oninput="autoCalc()" onclick="this.select()">
                 
                 <div class="btn-group">
                     <button class="btn-op btn-minus" onclick="adjQty(-1)">-1</button>
                     <button class="btn-op btn-plus" onclick="adjQty(1)">+1</button>
-                    <button class="btn-op btn-plus" style="background:#0d6efd" onclick="adjQty(10)">+10</button>
+                    <button class="btn-op btn-plus-10" onclick="adjQty(10)">+10</button>
                 </div>
             </div>
 
@@ -95,23 +93,22 @@
                 <input type="time" id="ect" class="input-field" value="17:00">
             </div>
 
-            <button class="btn-submit" onclick="submitData()" style="margin-top:15px;">💾 提交更新</button>
+            <button class="btn-submit" onclick="submitData()" style="margin-top:15px;">💾 提交更新 (新增一筆紀錄)</button>
         </div>
 
         <div class="card" id="history-area" style="display:none;">
-            <h3 style="margin-top:0; color:#666;">📊 歷史紀錄 (該批號)</h3>
+            <h3 style="margin-top:0; color:#666;">📊 歷史紀錄列表</h3>
             <div style="overflow-x:auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>時間</th>
+                            <th>時間 (年月日)</th>
                             <th>完成</th>
                             <th>庫存</th>
                             <th>進貨</th>
                         </tr>
                     </thead>
-                    <tbody id="history-tbody">
-                        </tbody>
+                    <tbody id="history-tbody"></tbody>
                 </table>
             </div>
         </div>
@@ -125,36 +122,32 @@
         // ==========================================
 
         function updateClock() {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('zh-TW', {hour12:false, hour:'2-digit', minute:'2-digit'});
+            // 這裡的時間僅供顯示，寫入資料庫的時間由後端決定
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString('zh-TW', {hour12:false});
         }
         setInterval(updateClock, 1000); updateClock();
 
         function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
 
-        // --- 核心邏輯：自動計算庫存 ---
-        // 公式：庫存 = 進貨數量 - 完成數量
+        // --- 自動計算庫存 ---
         function autoCalc() {
             let target = parseInt(document.getElementById('target').value) || 0;
             let qty = parseInt(document.getElementById('qty').value) || 0;
-            
-            // 計算剩餘庫存
-            let stock = target - qty;
-            
-            // 更新畫面
-            document.getElementById('stock').value = stock;
+            // 邏輯：庫存 = 進貨總量 - 已完成
+            document.getElementById('stock').value = target - qty;
         }
 
-        // 加減按鈕 (會連動觸發 autoCalc)
+        // 按鈕加減
         function adjQty(n) {
             let el = document.getElementById('qty');
             let v = parseInt(el.value) || 0;
             if(v + n >= 0) {
                 el.value = v + n;
-                autoCalc(); // 數字變了，重新計算庫存
+                autoCalc(); // 觸發計算
             }
         }
 
-        // --- 查詢功能 (含歷史紀錄) ---
+        // --- 查詢功能 ---
         function queryData() {
             if(!URL || URL.includes("貼上")) return alert("請先設定網址！");
             
@@ -169,55 +162,65 @@
             .then(r => r.json())
             .then(data => {
                 toggleLoad(false);
-                
                 if(data.found) {
-                    // 1. 填入最新資料到「作業區」
+                    // 1. 載入最新資料到作業區
                     document.getElementById('part').value = data.latest.part;
                     document.getElementById('batch').value = data.latest.batch;
                     document.getElementById('target').value = data.latest.target;
                     document.getElementById('qty').value = data.latest.qty;
-                    document.getElementById('ect').value = data.latest.ect.substring(0,5); // 只取 HH:mm
+                    // 時間只取前5碼 (HH:mm) 給輸入框用，因為 input type="time" 不支援日期
+                    if(data.latest.ect) document.getElementById('ect').value = data.latest.ect.substring(0,5);
                     
-                    // 執行一次自動計算，確保庫存數字正確 (Target - Qty)
+                    // 執行計算以更新庫存
                     autoCalc();
 
-                    // 2. 產生歷史表格
+                    // 2. 顯示歷史表格
                     renderHistoryTable(data.history);
                 } else {
-                    alert("❌ 查無資料，請確認料號是否正確。");
-                    // 即使沒查到，也可以把料號填進去方便直接開始新作業
+                    alert("❌ 查無資料，請確認料號。");
+                    // 沒查到也把料號填進去，方便直接開工
                     document.getElementById('part').value = p;
                     document.getElementById('batch').value = b;
                 }
             }).catch(e => {
-                toggleLoad(false); alert("查詢失敗: " + e);
+                toggleLoad(false); alert("查詢失敗：" + e);
             });
         }
 
-        // --- 產生歷史表格 HTML ---
-        function renderHistoryTable(historyList) {
+        // --- 渲染歷史表格 (含年月日) ---
+        function renderHistoryTable(list) {
             const tbody = document.getElementById('history-tbody');
-            tbody.innerHTML = ""; // 清空舊資料
+            tbody.innerHTML = ""; 
 
-            historyList.forEach(row => {
-                // 格式化時間 (只顯示 月/日 時:分)
-                let timeStr = row.time;
+            list.forEach(row => {
+                // 處理日期格式
+                let timeDisplay = row.time;
                 try {
-                    let d = new Date(row.time);
-                    timeStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
-                } catch(e){}
+                    // 嘗試解析日期字串
+                    let dateObj = new Date(row.time);
+                    if (!isNaN(dateObj.getTime())) {
+                        // 格式化為: 2026/01/06 14:30
+                        let y = dateObj.getFullYear();
+                        let m = (dateObj.getMonth()+1).toString().padStart(2, '0');
+                        let d = dateObj.getDate().toString().padStart(2, '0');
+                        let h = dateObj.getHours().toString().padStart(2, '0');
+                        let min = dateObj.getMinutes().toString().padStart(2, '0');
+                        timeDisplay = `${y}/${m}/${d} ${h}:${min}`;
+                    }
+                } catch(e) {
+                    // 如果解析失敗就直接顯示原始字串
+                }
 
                 let tr = `
                     <tr>
-                        <td>${timeStr}</td>
+                        <td style="font-size:12px;">${timeDisplay}</td>
                         <td style="color:var(--primary); font-weight:bold;">${row.qty}</td>
                         <td>${row.stock}</td>
-                        <td style="color:#888;">${row.target}</td>
+                        <td style="color:#666;">${row.target}</td>
                     </tr>
                 `;
                 tbody.innerHTML += tr;
             });
-
             document.getElementById('history-area').style.display = 'block';
         }
 
@@ -229,7 +232,7 @@
                 batchNo: document.getElementById('batch').value,
                 target: document.getElementById('target').value,
                 qty: document.getElementById('qty').value,
-                stock: document.getElementById('stock').value, // 這是自動計算後的結果
+                stock: document.getElementById('stock').value,
                 ect: document.getElementById('ect').value
             };
             
@@ -239,9 +242,8 @@
                 body: JSON.stringify(payload)
             }).then(() => {
                 toggleLoad(false); 
-                alert("✅ 資料已更新！");
-                // 提交後自動重新查詢一次，以更新下方的歷史表格
-                queryData();
+                alert("✅ 資料已提交更新！");
+                queryData(); // 提交後自動重新整理歷史表
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
         }
     </script>
