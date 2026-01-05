@@ -3,39 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>工廠作業系統</title>
+    <title>工廠管理系統</title>
     <style>
-        :root { --primary: #0056b3; --success: #28a745; --bg: #f4f6f8; }
+        :root { --primary: #0056b3; --success: #28a745; --bg: #f4f6f8; --card-bg: #fff; }
         body { font-family: -apple-system, Roboto, sans-serif; background: var(--bg); margin: 0; padding-bottom: 80px; touch-action: manipulation; }
         
-        .page { padding: 10px; }
-        .card { background: #fff; padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;}
+        /* 分頁控制 */
+        .page { display: none; padding: 10px; }
+        .page.active { display: block; }
+        
+        .card { background: var(--card-bg); padding: 15px; margin-bottom: 15px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .header { background: var(--primary); color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
         
         .label { font-size: 13px; color: #666; display: block; margin-bottom: 5px; }
         .input-field { width: 100%; padding: 12px; font-size: 18px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-weight: bold; background: #fff;}
-        
-        /* 自動計算欄位樣式 */
-        .auto-calc { background-color: #e8f5e9; color: #1b5e20; border-color: #a5d6a7; }
-
         .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        /* 完成數量大輸入框 */
+        /* 大數字輸入 */
         .qty-input { width: 100%; font-size: 48px; font-weight: 800; color: var(--primary); text-align: center; border: none; background: transparent; margin: 5px 0; }
         
-        /* 按鈕群組 */
+        /* 按鈕 */
         .btn-group { display: flex; gap: 10px; }
         .btn-op { flex: 1; padding: 15px; border: none; border-radius: 8px; font-size: 20px; font-weight: bold; cursor: pointer; color: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-minus { background: #dc3545; }
         .btn-plus { background: #198754; }
         .btn-plus-10 { background: #0d6efd; }
 
-        .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 20px; font-weight: bold; cursor: pointer; }
-        .btn-search { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; font-size: 18px; margin-top: 10px; cursor: pointer; }
+        .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 15px; border-radius: 10px; font-size: 20px; font-weight: bold; margin-top: 10px; cursor:pointer;}
+        .btn-search { width: 100%; background: #0056b3; color: white; border: none; padding: 12px; border-radius: 10px; font-size: 18px; margin-top: 10px; cursor:pointer;}
+
+        /* 底部導覽列 */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: flex; height: 60px; z-index: 100; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12px; color: #999; cursor: pointer; border-top: 4px solid transparent; }
+        .nav-item.active { color: var(--primary); font-weight: bold; border-top-color: var(--primary); background: #f8f9fa; }
+        .nav-icon { font-size: 24px; margin-bottom: 2px; }
+
+        /* 查詢結果儀表板 */
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
+        .dash-item { background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff; }
+        .dash-title { font-size: 12px; color: #666; }
+        .dash-val { font-size: 20px; font-weight: bold; color: #0056b3; margin-top: 5px; }
 
         /* 歷史表格 */
         .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; white-space: nowrap;}
+        .history-table th { background: #eee; padding: 8px; text-align: left; border-bottom: 2px solid #ddd; }
         .history-table td { padding: 8px; border-bottom: 1px solid #eee; }
         .history-table tr:nth-child(even) { background-color: #f9f9f9; }
 
@@ -45,72 +56,89 @@
 <body>
     <div id="loading"><div style="font-size: 40px;">🔄</div><div style="margin-top:10px;">讀取中...</div></div>
 
-    <div class="page">
+    <div id="page-input" class="page active">
         <div class="header">
-            <div>🏭 現場生產回報</div>
-            <div id="clock">12:00:00</div>
+            <div>📝 生產回報</div>
+            <div class="clock">12:00</div>
         </div>
 
-        <div class="card" style="border-left: 5px solid #0056b3;">
-            <span class="label">🔍 步驟一：輸入料號調閱過去資料</span>
-            <div class="info-grid">
-                <input type="text" id="q-part" class="input-field" placeholder="料號 (如 A-774)">
-                <input type="text" id="q-batch" class="input-field" placeholder="批號 (選填)">
+        <div class="card info-grid">
+            <div><span class="label">📦 料號 (Part)</span><input type="text" id="part" class="input-field" value="A-774"></div>
+            <div><span class="label">🔖 批號 (Batch)</span><input type="text" id="batch" class="input-field" value="LOT-01"></div>
+            <div><span class="label">📥 本次進貨</span><input type="number" id="target" class="input-field" value="0" onclick="this.select()"></div>
+            <div><span class="label">⏱️ 預計完成</span><input type="time" id="ect" class="input-field" value="17:00"></div>
+        </div>
+
+        <div class="card" style="text-align:center;">
+            <span class="label">✅ 本次完成數量</span>
+            <input type="number" id="qty" class="qty-input" value="0" onclick="this.select()">
+            <div class="btn-group">
+                <button class="btn-op btn-minus" onclick="adjQty(-1)">-1</button>
+                <button class="btn-op btn-plus" onclick="adjQty(1)">+1</button>
+                <button class="btn-op btn-plus-10" onclick="adjQty(10)">+10</button>
             </div>
-            <button class="btn-search" onclick="queryData()">查詢並載入設定</button>
         </div>
 
-        <div class="card" id="work-area">
-            <h3 style="margin-top:0; color:#0056b3; border-bottom:1px solid #eee; padding-bottom:5px;">📝 步驟二：修正生產狀況</h3>
+        <div style="padding:0 10px;">
+            <button class="btn-submit" onclick="submitData()">💾 提交資料</button>
+        </div>
+    </div>
+
+    <div id="page-query" class="page">
+        <div class="header" style="background:#555;">
+            <div>🔍 庫存總覽</div>
+            <div class="clock">12:00</div>
+        </div>
+
+        <div class="card">
+            <span class="label">輸入料號查看「合併總庫存」</span>
+            <input type="text" id="q-part" class="input-field" placeholder="料號 (如 A-774)">
+            <button class="btn-search" onclick="queryData()">查詢總庫存</button>
+        </div>
+
+        <div id="result-area" class="card" style="display:none; border-top: 5px solid #0056b3;">
+            <h3 style="margin-top:0; color:#333;">📊 統計結果 (該料號所有批次)</h3>
             
-            <div class="info-grid">
-                <div><span class="label">📦 料號</span><input type="text" id="part" class="input-field" readonly style="background:#f0f0f0;"></div>
-                <div><span class="label">🔖 批號</span><input type="text" id="batch" class="input-field" readonly style="background:#f0f0f0;"></div>
-                
-                <div>
-                    <span class="label">📥 進貨數量 (Target)</span>
-                    <input type="number" id="target" class="input-field" value="0" oninput="autoCalc()" onclick="this.select()">
+            <div class="dashboard-grid">
+                <div class="dash-item">
+                    <div class="dash-title">總進貨</div>
+                    <div class="dash-val" id="res-total-target" style="color:#666;">0</div>
                 </div>
-                <div>
-                    <span class="label">🏭 庫存 (Target - Qty)</span>
-                    <input type="number" id="stock" class="input-field auto-calc" readonly value="0">
+                <div class="dash-item">
+                    <div class="dash-title">總完成</div>
+                    <div class="dash-val" id="res-total-qty" style="color:var(--success);">0</div>
                 </div>
-            </div>
-
-            <div style="text-align:center; margin-top:15px; border-top:1px solid #eee; padding-top:10px;">
-                <span class="label">✅ 累計完成數量 (修改此處)</span>
-                <input type="number" id="qty" class="qty-input" value="0" oninput="autoCalc()" onclick="this.select()">
-                
-                <div class="btn-group">
-                    <button class="btn-op btn-minus" onclick="adjQty(-1)">-1</button>
-                    <button class="btn-op btn-plus" onclick="adjQty(1)">+1</button>
-                    <button class="btn-op btn-plus-10" onclick="adjQty(10)">+10</button>
+                <div class="dash-item" style="background:#e3f2fd; border-color:#90caf9;">
+                    <div class="dash-title">目前庫存</div>
+                    <div class="dash-val" id="res-stock" style="color:var(--primary); font-size:24px;">0</div>
                 </div>
             </div>
 
-            <div style="margin-top:10px;">
-                <span class="label">⏱️ 預計完成時間</span>
-                <input type="time" id="ect" class="input-field" value="17:00">
-            </div>
-
-            <button class="btn-submit" onclick="submitData()" style="margin-top:15px;">💾 提交更新 (新增一筆紀錄)</button>
-        </div>
-
-        <div class="card" id="history-area" style="display:none;">
-            <h3 style="margin-top:0; color:#666;">📊 歷史紀錄列表</h3>
+            <h4 style="margin-bottom:5px; margin-top:20px; border-bottom:1px solid #eee;">📜 詳細紀錄</h4>
             <div style="overflow-x:auto;">
                 <table class="history-table">
                     <thead>
                         <tr>
-                            <th>時間 (年月日)</th>
-                            <th>完成</th>
-                            <th>庫存</th>
+                            <th>時間</th>
+                            <th>批號</th>
                             <th>進貨</th>
+                            <th>完成</th>
                         </tr>
                     </thead>
                     <tbody id="history-tbody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" onclick="switchPage('input', this)">
+            <div class="nav-icon">📝</div>
+            <div>回報</div>
+        </div>
+        <div class="nav-item" onclick="switchPage('query', this)">
+            <div class="nav-icon">🔍</div>
+            <div>查詢</div>
         </div>
     </div>
 
@@ -122,117 +150,41 @@
         // ==========================================
 
         function updateClock() {
-            // 這裡的時間僅供顯示，寫入資料庫的時間由後端決定
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString('zh-TW', {hour12:false});
+            const t = new Date().toLocaleTimeString('zh-TW', {hour12:false, hour:'2-digit', minute:'2-digit'});
+            document.querySelectorAll('.clock').forEach(el => el.innerText = t);
         }
         setInterval(updateClock, 1000); updateClock();
 
-        function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
-
-        // --- 自動計算庫存 ---
-        function autoCalc() {
-            let target = parseInt(document.getElementById('target').value) || 0;
-            let qty = parseInt(document.getElementById('qty').value) || 0;
-            // 邏輯：庫存 = 進貨總量 - 已完成
-            document.getElementById('stock').value = target - qty;
+        function switchPage(pageName, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + pageName).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(el) el.classList.add('active');
         }
 
-        // 按鈕加減
         function adjQty(n) {
             let el = document.getElementById('qty');
             let v = parseInt(el.value) || 0;
-            if(v + n >= 0) {
-                el.value = v + n;
-                autoCalc(); // 觸發計算
-            }
+            if(v + n >= 0) el.value = v + n;
         }
 
-        // --- 查詢功能 ---
-        function queryData() {
-            if(!URL || URL.includes("貼上")) return alert("請先設定網址！");
-            
-            let p = document.getElementById('q-part').value.trim();
-            let b = document.getElementById('q-batch').value.trim();
-            if(!p) return alert("請輸入料號");
+        function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
 
-            toggleLoad(true);
-            document.getElementById('history-area').style.display = 'none';
-
-            fetch(`${URL}?partNo=${encodeURIComponent(p)}&batchNo=${encodeURIComponent(b)}`)
-            .then(r => r.json())
-            .then(data => {
-                toggleLoad(false);
-                if(data.found) {
-                    // 1. 載入最新資料到作業區
-                    document.getElementById('part').value = data.latest.part;
-                    document.getElementById('batch').value = data.latest.batch;
-                    document.getElementById('target').value = data.latest.target;
-                    document.getElementById('qty').value = data.latest.qty;
-                    // 時間只取前5碼 (HH:mm) 給輸入框用，因為 input type="time" 不支援日期
-                    if(data.latest.ect) document.getElementById('ect').value = data.latest.ect.substring(0,5);
-                    
-                    // 執行計算以更新庫存
-                    autoCalc();
-
-                    // 2. 顯示歷史表格
-                    renderHistoryTable(data.history);
-                } else {
-                    alert("❌ 查無資料，請確認料號。");
-                    // 沒查到也把料號填進去，方便直接開工
-                    document.getElementById('part').value = p;
-                    document.getElementById('batch').value = b;
-                }
-            }).catch(e => {
-                toggleLoad(false); alert("查詢失敗：" + e);
-            });
-        }
-
-        // --- 渲染歷史表格 (含年月日) ---
-        function renderHistoryTable(list) {
-            const tbody = document.getElementById('history-tbody');
-            tbody.innerHTML = ""; 
-
-            list.forEach(row => {
-                // 處理日期格式
-                let timeDisplay = row.time;
-                try {
-                    // 嘗試解析日期字串
-                    let dateObj = new Date(row.time);
-                    if (!isNaN(dateObj.getTime())) {
-                        // 格式化為: 2026/01/06 14:30
-                        let y = dateObj.getFullYear();
-                        let m = (dateObj.getMonth()+1).toString().padStart(2, '0');
-                        let d = dateObj.getDate().toString().padStart(2, '0');
-                        let h = dateObj.getHours().toString().padStart(2, '0');
-                        let min = dateObj.getMinutes().toString().padStart(2, '0');
-                        timeDisplay = `${y}/${m}/${d} ${h}:${min}`;
-                    }
-                } catch(e) {
-                    // 如果解析失敗就直接顯示原始字串
-                }
-
-                let tr = `
-                    <tr>
-                        <td style="font-size:12px;">${timeDisplay}</td>
-                        <td style="color:var(--primary); font-weight:bold;">${row.qty}</td>
-                        <td>${row.stock}</td>
-                        <td style="color:#666;">${row.target}</td>
-                    </tr>
-                `;
-                tbody.innerHTML += tr;
-            });
-            document.getElementById('history-area').style.display = 'block';
-        }
-
-        // --- 提交資料 ---
+        // 提交 (只負責寫入，不顯示庫存)
         function submitData() {
+            if(!URL || URL.includes("貼上")) return alert("請設定網址");
             toggleLoad(true);
+
+            // 這裡算出的 stock 只是單筆的 stock，不是總庫存，但我們為了格式統一還是傳過去
+            let t = parseInt(document.getElementById('target').value) || 0;
+            let q = parseInt(document.getElementById('qty').value) || 0;
+            
             const payload = {
                 partNo: document.getElementById('part').value,
                 batchNo: document.getElementById('batch').value,
-                target: document.getElementById('target').value,
-                qty: document.getElementById('qty').value,
-                stock: document.getElementById('stock').value,
+                target: t,
+                qty: q,
+                stock: t - q, // 這是單筆的剩餘，不是總庫存
                 ect: document.getElementById('ect').value
             };
             
@@ -242,9 +194,59 @@
                 body: JSON.stringify(payload)
             }).then(() => {
                 toggleLoad(false); 
-                alert("✅ 資料已提交更新！");
-                queryData(); // 提交後自動重新整理歷史表
+                alert("✅ 資料已提交！");
+                // 清空數量方便下一筆
+                document.getElementById('qty').value = 0;
+                document.getElementById('target').value = 0;
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
+        }
+
+        // 查詢 (負責加總並顯示)
+        function queryData() {
+            if(!URL) return alert("請設定網址");
+            let p = document.getElementById('q-part').value.trim();
+            if(!p) return alert("請輸入料號");
+
+            toggleLoad(true);
+            document.getElementById('result-area').style.display = 'none';
+
+            fetch(`${URL}?partNo=${encodeURIComponent(p)}&batchNo=`) // batchNo 留空表示查全部
+            .then(r => r.json())
+            .then(data => {
+                toggleLoad(false);
+                if(data.found) {
+                    // 填入統計數據
+                    document.getElementById('res-total-target').innerText = data.totalTarget;
+                    document.getElementById('res-total-qty').innerText = data.totalQty;
+                    document.getElementById('res-stock').innerText = data.currentStock;
+
+                    // 產生歷史表格
+                    const tbody = document.getElementById('history-tbody');
+                    tbody.innerHTML = "";
+                    data.history.forEach(row => {
+                        // 日期格式化
+                        let dStr = row.time;
+                        try {
+                            let d = new Date(row.time);
+                            dStr = `${d.getFullYear()}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}`;
+                        } catch(e){}
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${dStr}</td>
+                                <td>${row.batch}</td>
+                                <td style="color:#666;">${row.target}</td>
+                                <td style="color:var(--success); font-weight:bold;">${row.qty}</td>
+                            </tr>
+                        `;
+                    });
+                    document.getElementById('result-area').style.display = 'block';
+                } else {
+                    alert("❌ 查無此料號資料");
+                }
+            }).catch(e => {
+                toggleLoad(false); alert("查詢失敗：" + e);
+            });
         }
     </script>
 </body>
