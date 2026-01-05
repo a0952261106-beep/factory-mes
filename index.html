@@ -39,11 +39,10 @@
         .nav-item.active { color: var(--primary); font-weight: bold; border-top-color: var(--primary); background: #f8f9fa; }
         .nav-icon { font-size: 24px; margin-bottom: 2px; }
 
-        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; text-align: center; }
         .dash-item { background: #f0f7ff; padding: 10px; border-radius: 8px; border: 1px solid #cce5ff; }
         .dash-title { font-size: 12px; color: #666; }
         
-        /* 查詢頁的大庫存輸入框 */
         .dash-val-input { width: 100%; font-size: 32px; font-weight: bold; color: var(--primary); text-align: center; border: none; background: transparent; border-bottom: 2px solid var(--primary); }
 
         .history-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
@@ -52,6 +51,15 @@
         .history-table tr:nth-child(even) { background-color: #f9f9f9; }
 
         #loading { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); color: white; justify-content: center; align-items: center; flex-direction: column; z-index: 2000; backdrop-filter: blur(2px); }
+        
+        /* 特別強調庫存輸入框 */
+        .stock-input-highlight {
+            background: #fff8e1; /* 淡黃色背景 */
+            color: #d32f2f;      /* 紅色字體強調 */
+            border: 2px solid #ffca28;
+            text-align: center;
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
@@ -66,7 +74,7 @@
         <div class="card info-grid">
             <div style="grid-column: span 2;">
                 <span class="label">📦 料號 (Part) 
-                    <button class="btn-small-load" onclick="fetchStockForInput()">🔄 讀取庫存</button>
+                    <button class="btn-small-load" onclick="fetchStockForInput()">🔄 讀取系統庫存</button>
                 </span>
                 <input type="text" id="part" class="input-field" value="A-774">
             </div>
@@ -74,7 +82,7 @@
             <div><span class="label">🔖 批號 (Batch)</span><input type="text" id="batch" class="input-field" value="LOT-01"></div>
             
             <div>
-                <span class="label">🖥️ 系統庫存</span>
+                <span class="label">🖥️ 讀取前庫存</span>
                 <input type="text" id="current-system-stock" class="input-field" value="-" readonly style="background:#e9ecef; color:#666; font-size:16px;">
             </div>
 
@@ -96,13 +104,13 @@
             </div>
             
             <div style="margin-top: 15px; border-top:1px solid #eee; padding-top:10px;">
-                <span class="label">🏭 更新後庫存 (可手動修正)</span>
-                <input type="number" id="final-stock" class="input-field" style="background:#fffbe6; color:var(--primary); font-size:24px; text-align:center;" value="0">
+                <span class="label">🏭 最終庫存 (系統試算，可人工修改)</span>
+                <input type="number" id="final-stock" class="input-field stock-input-highlight" value="0" onclick="this.select()">
             </div>
         </div>
 
         <div style="padding:0 10px;">
-            <button class="btn-submit" onclick="submitData()">💾 提交資料</button>
+            <button class="btn-submit" onclick="submitData()">💾 提交回報</button>
         </div>
     </div>
 
@@ -133,10 +141,9 @@
                 </div>
             </div>
             
-            <button class="btn-correct" onclick="correctStockFromQuery()">🛠️ 儲存庫存修正</button>
-            <p style="font-size:12px; color:#666; text-align:center;">*若發現庫存不符，請直接修改數字並按橘色按鈕</p>
+            <button class="btn-correct" onclick="correctStockFromQuery()">🛠️ 僅修正庫存 (盤點用)</button>
 
-            <h4 style="margin-bottom:5px; margin-top:20px; border-bottom:1px solid #eee;">📜 詳細歷史 (含時間)</h4>
+            <h4 style="margin-bottom:5px; margin-top:20px; border-bottom:1px solid #eee;">📜 詳細歷史</h4>
             <div style="overflow-x:auto;">
                 <table class="history-table">
                     <thead>
@@ -190,7 +197,7 @@
 
         let systemStock = 0; 
 
-        // 讀取庫存 (輸入頁用)
+        // 讀取庫存
         function fetchStockForInput() {
             if(!URL) return alert("請設定網址");
             let p = document.getElementById('part').value.trim();
@@ -204,7 +211,7 @@
             .then(data => {
                 toggleLoad(false);
                 if(data.found) {
-                    systemStock = data.currentStock; // 抓最後一筆的庫存
+                    systemStock = data.currentStock;
                     document.getElementById('current-system-stock').value = systemStock;
                     previewNewStock(); 
                 } else {
@@ -216,10 +223,13 @@
             .catch(e => { toggleLoad(false); alert("連線錯誤"); });
         }
 
+        // 預覽更新，但允許使用者之後自己改
         function previewNewStock() {
             let t = parseInt(document.getElementById('target').value) || 0;
             let q = parseInt(document.getElementById('qty').value) || 0;
             let estimated = systemStock + t - q;
+            
+            // 系統算一次填進去，但使用者可以點擊修改
             document.getElementById('final-stock').value = estimated;
         }
 
@@ -231,14 +241,15 @@
 
         function toggleLoad(show) { document.getElementById('loading').style.display = show ? 'flex' : 'none'; }
 
-        // 提交回報 (一般作業)
+        // 提交：抓取 final-stock 裡的數字 (無論是算出來的還是人打的)
         function submitData() {
             if(!URL || URL.includes("貼上")) return alert("請設定網址");
             toggleLoad(true);
 
             let t = parseInt(document.getElementById('target').value) || 0;
             let q = parseInt(document.getElementById('qty').value) || 0;
-            let finalStock = document.getElementById('final-stock').value; // 這是人員確認過的庫存
+            // 關鍵：這裡抓取的是畫面上顯示的庫存，如果師傅有改過，就用改過的
+            let finalStock = document.getElementById('final-stock').value;
 
             const payload = {
                 partNo: document.getElementById('part').value,
@@ -251,14 +262,14 @@
             
             fetch(URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
             .then(() => {
-                toggleLoad(false); alert("✅ 資料已提交！");
+                toggleLoad(false); alert("✅ 回報成功！庫存已更新。");
                 document.getElementById('qty').value = 0;
                 document.getElementById('target').value = 0;
                 fetchStockForInput(); 
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
         }
 
-        // 查詢庫存
+        // 查詢
         function queryData() {
             if(!URL) return alert("請設定網址");
             let p = document.getElementById('q-part').value.trim();
@@ -272,7 +283,6 @@
             .then(data => {
                 toggleLoad(false);
                 if(data.found) {
-                    // 顯示最後更新時間 (格式化)
                     let dStr = "-";
                     try {
                         let d = new Date(data.lastUpdated);
@@ -280,9 +290,8 @@
                     } catch(e){}
 
                     document.getElementById('res-date').innerText = dStr;
-                    document.getElementById('res-stock-input').value = data.currentStock; // 填入輸入框
+                    document.getElementById('res-stock-input').value = data.currentStock;
 
-                    // 產生歷史表格
                     const tbody = document.getElementById('history-tbody');
                     tbody.innerHTML = "";
                     data.history.forEach(row => {
@@ -307,34 +316,33 @@
                     });
                     document.getElementById('result-area').style.display = 'block';
                 } else {
-                    alert("❌ 查無此料號資料");
+                    alert("❌ 查無資料");
                 }
             }).catch(e => { toggleLoad(false); alert("查詢失敗：" + e); });
         }
 
-        // 從查詢頁面直接「校正庫存」
+        // 僅修正庫存
         function correctStockFromQuery() {
             let p = document.getElementById('q-part').value.trim();
-            let newStock = document.getElementById('res-stock-input').value; // 抓取人員修改後的數字
+            let newStock = document.getElementById('res-stock-input').value;
 
             if(!p) return;
-            if(!confirm(`確定要將料號 ${p} 的庫存修正為 ${newStock} 嗎？`)) return;
+            if(!confirm(`確定修正 ${p} 庫存為 ${newStock} ？`)) return;
 
             toggleLoad(true);
             const payload = {
                 partNo: p,
-                batchNo: "盤點修正", // 自動標記為盤點
+                batchNo: "盤點修正",
                 target: 0,
                 qty: 0,
-                stock: newStock, // 這是新的正確庫存
+                stock: newStock, 
                 ect: ""
             };
 
             fetch(URL, { method: "POST", mode: "no-cors", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload) })
             .then(() => {
-                toggleLoad(false); 
-                alert("✅ 庫存已修正完畢！");
-                queryData(); // 重新整理顯示
+                toggleLoad(false); alert("✅ 庫存修正完畢");
+                queryData();
             }).catch(e => { toggleLoad(false); alert("連線失敗"); });
         }
     </script>
